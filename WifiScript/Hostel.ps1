@@ -2,7 +2,7 @@
 Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan delete profile name="KIIT-WIFI-NET."'
 
 # Add a new Wi-Fi profile
-Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="C:\Users\Paritosh Dot\Documents\WIFIPASS\Hostel\Wi-Fi-KIIT-WIFI-NET..xml"'
+Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="C:\Users\Paritosh Dot\Documents\KIIT_WIFI_ISSUE\Hostel\Wi-Fi-KIIT-WIFI-NET..xml"'
 
 # Connect to the Wi-Fi network
 Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan connect name="KIIT-WIFI-NET."'
@@ -54,9 +54,9 @@ Start-Sleep -Milliseconds 300    # Wait to ensure the action is registered
  Start-Sleep -Seconds 2  # Adjust this as needed
 
 # Send username
-[System.Windows.Forms.SendKeys]::SendWait("23052007")
+[System.Windows.Forms.SendKeys]::SendWait("UserName")
 [System.Windows.Forms.SendKeys]::SendWait("{TAB}")  # Move to password field
 
 # Send password
-[System.Windows.Forms.SendKeys]::SendWait("RcLZD76B")
+[System.Windows.Forms.SendKeys]::SendWait("Password")
 [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")  # Press OK
