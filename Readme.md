@@ -55,4 +55,6 @@ Tired of having this show up
 ## Note:
 **According to me this is happening because both the network have different authentication KP-1 has a WPA connection and central Library has WPA2 Connection**
 
+**Note this will only work if you have this error(if you want a normal forget->connect then remove the newly added lines 51 to 59)**
+
 Please contribute to this Repo as it can solve  of our problem with KIIT wifi.
