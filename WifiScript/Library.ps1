@@ -54,9 +54,9 @@ Start-Sleep -Milliseconds 300    # Wait to ensure the action is registered
  Start-Sleep -Seconds 2  # Adjust this as needed
 
 # Send username
-[System.Windows.Forms.SendKeys]::SendWait("Username")
+[System.Windows.Forms.SendKeys]::SendWait("23052007")
 [System.Windows.Forms.SendKeys]::SendWait("{TAB}")  # Move to password field
 
 # Send password
-[System.Windows.Forms.SendKeys]::SendWait("Password")
+[System.Windows.Forms.SendKeys]::SendWait("RcLZD76B")
 [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")  # Press OK

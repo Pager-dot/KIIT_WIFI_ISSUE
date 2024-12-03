@@ -2,6 +2,13 @@
 
 This project automates connecting to a KIIT WiFi network and handles login using a PowerShell script. The script performs a sequence of actions, including pressing key combinations, navigating through fields, and submitting credentials.
 
+## Why ??
+
+Tired of having this show up
+
+![Problem image](Problem.png)
+
+
 ## Features
 
 - Automates keyboard actions like pressing `Win+A`, `Tab`, and `Enter`.
@@ -44,3 +51,8 @@ This project automates connecting to a KIIT WiFi network and handles login using
    - Don't worry you just need to make only one more file just repeat the above process but this time go to College/Library/Labs.
    - And manually do the forget password like you usually do to connect the network and repeat steps 1 to 3.
    - Congratulations !!! now you don't need to manually forget password and reconnect to the network you can now double click the icon once and get instantly connected to the network.
+
+## Note:
+**According to me this is happening because both the network have different authentication KP-1 has a WPA connection and central Library has WPA2 Connection**
+
+Please contribute to this Repo as it can solve  of our problem with KIIT wifi.
