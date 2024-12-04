@@ -45,16 +45,16 @@ public class Keyboard {
 Start-Sleep -Milliseconds 900    # Wait longer to ensure the action completes
 
 [Keyboard]::PressKey(0x09)       # Press Tab
-Start-Sleep -Milliseconds 300    # Wait to ensure the action is registered
+Start-Sleep -Milliseconds 900    # Wait to ensure the action is registered
 
 [Keyboard]::PressKey(0x0D)       # Press Enter
-Start-Sleep -Milliseconds 300
+Start-Sleep -Milliseconds 900
 
 [Keyboard]::PressKey(0x0D)       # Press Enter
-Start-Sleep -Milliseconds 300
+Start-Sleep -Milliseconds 900
 
 [Keyboard]::PressKey(0x09)       # Press Tab
-Start-Sleep -Milliseconds 300    # Wait to ensure the action is registered
+Start-Sleep -Milliseconds 900    # Wait to ensure the action is registered
 
 [Keyboard]::PressKey(0x0D)       # Press Enter
 
@@ -63,9 +63,9 @@ Start-Sleep -Milliseconds 300    # Wait to ensure the action is registered
  Start-Sleep -Seconds 2  # Adjust this as needed
 
 # Send username
-[System.Windows.Forms.SendKeys]::SendWait("23052007")
+[System.Windows.Forms.SendKeys]::SendWait("Username")
 [System.Windows.Forms.SendKeys]::SendWait("{TAB}")  # Move to password field
 
 # Send password
-[System.Windows.Forms.SendKeys]::SendWait("RcLZD76B")
+[System.Windows.Forms.SendKeys]::SendWait("Password")
 [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")  # Press OK
