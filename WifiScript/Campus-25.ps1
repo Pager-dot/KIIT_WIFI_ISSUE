@@ -1,11 +1,11 @@
 # Delete an existing Wi-Fi profile
-Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan delete profile name="KIIT-WIFI-NET."'
+Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan delete profile name="KIIT-WIFI-DU"'
 
 # Add a new Wi-Fi profile
-Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="Hostel\Wi-Fi-KIIT-WIFI-NET..xml"'
+Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="Campus-25\Wi-Fi-KIIT-WIFI-DU.xml"'
 
 # Connect to the Wi-Fi network
-Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan connect name="KIIT-WIFI-NET."'
+Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan connect name="KIIT-WIFI-DU"'
 
 
 Add-Type -AssemblyName System.Windows.Forms

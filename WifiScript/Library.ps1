@@ -2,7 +2,7 @@
 Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan delete profile name="KIIT-WIFI-NET."'
 
 # Add a new Wi-Fi profile
-Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="C:\Users\Paritosh Dot\Documents\KIIT_WIFI_ISSUE\Universal\Wi-Fi-KIIT-WIFI-NET..xml"'
+Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan add profile filename="Universal\Wi-Fi-KIIT-WIFI-NET..xml"'
 
 # Connect to the Wi-Fi network
 Start-Process -NoNewWindow -FilePath "cmd.exe" -ArgumentList '/c netsh wlan connect name="KIIT-WIFI-NET."'
