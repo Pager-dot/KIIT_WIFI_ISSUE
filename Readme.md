@@ -10,14 +10,67 @@ Tired of having this show up
 
 ## How it works
 
-These networks use PEAP with an inner MSCHAPv2 login (`useOneX=true` in the
-exported profile XML). Windows only shows that interactive "Windows Security"
-sign-in box when it has no cached credential for the profile — right after
-the profile is re-added, or after your KIIT password changes. Instead of
-racing that popup with fake keystrokes, the script pushes your credential
-into the profile programmatically via the Windows `WlanSetProfileEapXmlUserData`
-API (see `WifiScript/Common.ps1`) before connecting, so the popup never
-appears in the first place.
+KIIT's Wi-Fi uses WPA2-Enterprise with PEAP (outer) + MSCHAPv2 (inner) 802.1X
+authentication (`useOneX=true` in the exported profile XML). There are
+actually **two different popups** that can show up when connecting, for two
+unrelated reasons, and the script prevents both:
+
+### 1. The "Windows Security — Sign in" box (username/password)
+
+Windows shows this whenever it has no cached credential for the profile —
+which is exactly the state right after `netsh wlan add profile` (a fresh
+profile has no saved credential yet), or after your KIIT password changes.
+
+Instead of typing into that popup (the old approach used `SendKeys` and
+`keybd_event` to blindly Tab/Enter/type through it, which broke every time
+Windows changed the dialog's focus order), the script calls the Windows
+`WlanSetProfileEapXmlUserData` API directly — the same private API Windows
+itself uses internally to save your credential when you check "remember my
+credentials" — to inject the username/password into the profile *before*
+connecting. Windows then already has a valid cached credential and never
+needs to ask.
+
+This lives in `WifiScript/Common.ps1`:
+- `Get-KiitCredential` prompts once via a normal `Get-Credential` dialog and
+  caches the result with `Export-Clixml`, which encrypts the password via
+  Windows DPAPI (tied to your Windows user + machine — unreadable if the
+  file is copied elsewhere, and never stored as plaintext).
+- `Set-WlanEapCredential` builds the exact XML blob `WlanSetProfileEapXmlUserData`
+  expects (schema pulled straight from `C:\Windows\schemas\EAPHost\*.xsd` and
+  `C:\Windows\schemas\EAPMethods\*.xsd` — these are undocumented-in-practice
+  APIs, so getting the XML shape right required reading Windows' own schema
+  files rather than guessing) and pushes it into the named profile via
+  P/Invoke into `wlanapi.dll`.
+
+### 2. The "Continue connecting?" certificate prompt
+
+This is a *different* popup, unrelated to your credentials. KIIT's RADIUS
+server (a Cisco/Aruba ClearPass box, `CN=CPPM_02`) presents a **self-signed
+certificate**. Windows can't validate a self-signed cert against any public
+root of trust, so by default (`DisableUserPromptForServerValidation=false`
+in the profile XML) it always asks you to manually confirm before trusting
+it — and that confirmation is never remembered, so it comes back every time
+Windows does a fresh 802.1X handshake.
+
+The fix is the same idea IT departments use for managed devices: **pin the
+server's actual certificate thumbprint** into the profile's
+`<TrustedRootCA>` list, then set `DisableUserPromptForServerValidation=true`.
+Windows then validates the connection silently against that pinned
+thumbprint instead of asking — real validation still happens, it's just no
+longer interactive. (Setting that flag *without* first pinning the correct
+thumbprint is actively worse — Windows fails the connection silently instead
+of prompting, which looks like the network just stops working. The thumbprint
+must be verified first.)
+
+The current thumbprint for `KIIT-WIFI-NET.` (used by both the Hostel and
+Library/Campus profiles) is already pinned in
+`Hostel/Wi-Fi-KIIT-WIFI-NET..xml` and `Universal/Wi-Fi-KIIT-WIFI-NET..xml`.
+If KIIT ever rotates that certificate, or if `KIIT-WIFI-DU`
+(`Campus-25.ps1`) turns out to use a different RADIUS server, you'll see the
+"Continue connecting?" box again — click **Show certificate details**, note
+the **Server thumbprint** field, and add it as an extra `<TrustedRootCA>`
+entry in the relevant profile XML (multiple entries are allowed; keep the
+old one too in case it's still valid on other access points).
 
 ## Features
 
@@ -82,5 +135,10 @@ That approach was removed because it was fragile (broke on Windows UI
 updates) and insecure (leaked credentials into git history). If you forked
 this before this change and had your own credentials committed, rotate your
 KIIT password.
+
+`Campus-25.ps1` (`KIIT-WIFI-DU`) has the sign-in fix but its certificate
+thumbprint hasn't been verified against a live connection yet — you may
+still see the "Continue connecting?" box there until someone pins it (see
+"How it works" above for the steps).
 
 Please contribute to this repo — it can solve a lot of people's problems with KIIT wifi.
