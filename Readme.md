@@ -77,10 +77,20 @@ old one too in case it's still valid on other access points).
 - Manages WiFi profiles (`delete`, `add`, `connect`) using `netsh` commands.
 - Automatically retries the connection if the first attempt fails (the KIIT
   RADIUS/access points occasionally flake on the first 802.1X attempt — the
-  same thing a manual second click in the Wi-Fi flyout used to fix). The
-  script explicitly disconnects and waits for the interface to go fully idle
-  before retrying, since retrying too soon just cancels the previous attempt
-  instead of giving it a clean shot.
+  same thing a manual second click in the Wi-Fi flyout used to fix), up to
+  5 attempts. The script explicitly disconnects and waits for the interface
+  to go fully idle before retrying, since retrying too soon just cancels the
+  previous attempt instead of giving it a clean shot.
+  - Failures are detected fast: instead of always waiting out a full
+    18-second timeout per attempt, the script watches the
+    `Microsoft-Windows-WLAN-AutoConfig/Operational` event log for the
+    definitive failure events (`8002`/`12013`) and moves on to a clean retry
+    within ~2 seconds of a real failure, rather than sitting idle for the
+    rest of the timeout.
+  - Typical case: connects in ~4-5 seconds on the first try. Even a run that
+    needs a couple of retries due to a flaky first attempt or two lands
+    around ~12-21 seconds, versus ~80 seconds worst case before this
+    speedup was added.
 - Prompts once for your KIIT username/password and caches them encrypted
   (via Windows DPAPI, through `Export-Clixml`) at
   `%LOCALAPPDATA%\KiitWifi\credential.xml` — never stored in the repo or in

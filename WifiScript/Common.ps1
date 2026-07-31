@@ -151,6 +151,26 @@ function Test-WlanConnected {
     return ($state -eq "connected" -and $connectedProfile -eq $ProfileName)
 }
 
+# The WLAN-AutoConfig event log fires a definitive failure event (8002 "failed
+# to connect" or 12013 "802.1x authentication failed") within a second or two
+# of a real failure - far sooner than waiting out a full connect timeout.
+# Checking this lets a doomed attempt be abandoned early instead of always
+# waiting the entire per-attempt timeout before retrying.
+function Test-WlanConnectFailedSince {
+    param([Parameter(Mandatory = $true)][datetime]$Since)
+
+    try {
+        $events = Get-WinEvent -LogName "Microsoft-Windows-WLAN-AutoConfig/Operational" -MaxEvents 20 -ErrorAction Stop |
+            Where-Object { $_.TimeCreated -ge $Since -and ($_.Id -eq 8002 -or $_.Id -eq 12013) }
+        return ($events.Count -gt 0)
+    }
+    catch {
+        # If the log can't be read for any reason, fall back to the timeout
+        # path rather than failing the whole connect attempt.
+        return $false
+    }
+}
+
 # Waits for the interface to fully settle to "disconnected" (not just
 # "not yet connected") before allowing a new connect attempt. Issuing a new
 # 'netsh wlan connect' while the WLAN service is still tearing down a failed
@@ -179,27 +199,45 @@ function Wait-ForWlanIdle {
 function Connect-WlanProfileWithRetry {
     param(
         [Parameter(Mandatory = $true)][string]$ProfileName,
-        [int]$MaxAttempts = 3,
+        [int]$MaxAttempts = 5,
         [int]$TimeoutSeconds = 18
     )
 
+    # Give a genuine failure event a couple seconds to be logged before we
+    # start trusting the event log, so we don't act on a stale event left
+    # over from before this attempt was even issued.
+    $failureDetectionGraceSeconds = 2
+
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $connectIssuedAt = Get-Date
         Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c netsh wlan connect name=`"$ProfileName`""
 
         # Give the handshake time to settle before deciding it failed - a
         # slow-but-in-progress attempt must not be interrupted by a retry,
         # since re-issuing connect mid-handshake restarts it from scratch.
+        # But if a definitive failure event shows up, stop waiting out the
+        # rest of the timeout and move on to a clean retry immediately.
         $waited = 0
+        $failedEarly = $false
         while ($waited -lt $TimeoutSeconds) {
             Start-Sleep -Seconds 1
             $waited++
             if (Test-WlanConnected -ProfileName $ProfileName) {
                 return $true
             }
+            if ($waited -ge $failureDetectionGraceSeconds -and (Test-WlanConnectFailedSince -Since $connectIssuedAt)) {
+                $failedEarly = $true
+                break
+            }
         }
 
         if ($attempt -lt $MaxAttempts) {
-            Write-Host "Connect attempt $attempt/$MaxAttempts did not complete, cleaning up before retrying..."
+            if ($failedEarly) {
+                Write-Host "Connect attempt $attempt/$MaxAttempts failed (detected via event log after ${waited}s), cleaning up before retrying..."
+            }
+            else {
+                Write-Host "Connect attempt $attempt/$MaxAttempts did not complete after ${TimeoutSeconds}s, cleaning up before retrying..."
+            }
 
             # Explicitly tear down the stalled/failed attempt and wait for
             # the interface to fully return to idle before retrying, rather
