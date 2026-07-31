@@ -130,3 +130,86 @@ function Get-WlanInterfaceGuid {
     $guidString = ($interfaceLine -split ":", 2)[1].Trim()
     return [Guid]$guidString
 }
+
+function Get-WlanInterfaceState {
+    $lines = netsh wlan show interfaces
+    $stateLine = $lines | Select-String "^\s*State\s*:"
+    if (-not $stateLine) { return $null }
+    return ($stateLine -split ":", 2)[1].Trim()
+}
+
+function Test-WlanConnected {
+    param([Parameter(Mandatory = $true)][string]$ProfileName)
+
+    $lines = netsh wlan show interfaces
+    $stateLine = $lines | Select-String "^\s*State\s*:"
+    $profileLine = $lines | Select-String "^\s*Profile\s*:"
+    if (-not $stateLine -or -not $profileLine) { return $false }
+
+    $state = ($stateLine -split ":", 2)[1].Trim()
+    $connectedProfile = ($profileLine -split ":", 2)[1].Trim()
+    return ($state -eq "connected" -and $connectedProfile -eq $ProfileName)
+}
+
+# Waits for the interface to fully settle to "disconnected" (not just
+# "not yet connected") before allowing a new connect attempt. Issuing a new
+# 'netsh wlan connect' while the WLAN service is still tearing down a failed
+# attempt cancels it instead of giving it a clean retry - this is what a
+# manual retry gets "for free" from the human pause between clicks.
+function Wait-ForWlanIdle {
+    param([int]$TimeoutSeconds = 10)
+
+    $waited = 0
+    while ($waited -lt $TimeoutSeconds) {
+        if ((Get-WlanInterfaceState) -eq "disconnected") {
+            return $true
+        }
+        Start-Sleep -Seconds 1
+        $waited++
+    }
+    return $false
+}
+
+# The KIIT RADIUS server / access points occasionally fail the first 802.1X
+# attempt (observed via the WLAN-AutoConfig event log: "Explicit Eap failure
+# received" and even "The operation was cancelled" on overlapping attempts)
+# and succeed on a clean retry - the same thing a manual second click fixes.
+# Retrying automatically here means the script recovers on its own instead
+# of leaving the network in Windows' "Action needed" state.
+function Connect-WlanProfileWithRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$ProfileName,
+        [int]$MaxAttempts = 3,
+        [int]$TimeoutSeconds = 18
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c netsh wlan connect name=`"$ProfileName`""
+
+        # Give the handshake time to settle before deciding it failed - a
+        # slow-but-in-progress attempt must not be interrupted by a retry,
+        # since re-issuing connect mid-handshake restarts it from scratch.
+        $waited = 0
+        while ($waited -lt $TimeoutSeconds) {
+            Start-Sleep -Seconds 1
+            $waited++
+            if (Test-WlanConnected -ProfileName $ProfileName) {
+                return $true
+            }
+        }
+
+        if ($attempt -lt $MaxAttempts) {
+            Write-Host "Connect attempt $attempt/$MaxAttempts did not complete, cleaning up before retrying..."
+
+            # Explicitly tear down the stalled/failed attempt and wait for
+            # the interface to fully return to idle before retrying, rather
+            # than layering a new connect request on top of one that may
+            # still be unwinding.
+            Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c netsh wlan disconnect"
+            Wait-ForWlanIdle -TimeoutSeconds 10 | Out-Null
+            Start-Sleep -Seconds 3
+        }
+    }
+
+    return $false
+}

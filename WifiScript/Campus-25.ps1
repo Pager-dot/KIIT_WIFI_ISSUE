@@ -15,5 +15,7 @@ Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c netsh wla
 $cred = Get-KiitCredential
 Set-WlanEapCredential -ProfileName $profileName -Credential $cred
 
-# Connect to the Wi-Fi network
-Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c netsh wlan connect name=`"$profileName`""
+# Connect to the Wi-Fi network (retries automatically on transient failures)
+if (-not (Connect-WlanProfileWithRetry -ProfileName $profileName)) {
+    Write-Warning "Could not connect to '$profileName' after multiple attempts."
+}

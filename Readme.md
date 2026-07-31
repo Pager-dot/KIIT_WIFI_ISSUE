@@ -75,6 +75,12 @@ old one too in case it's still valid on other access points).
 ## Features
 
 - Manages WiFi profiles (`delete`, `add`, `connect`) using `netsh` commands.
+- Automatically retries the connection if the first attempt fails (the KIIT
+  RADIUS/access points occasionally flake on the first 802.1X attempt — the
+  same thing a manual second click in the Wi-Fi flyout used to fix). The
+  script explicitly disconnects and waits for the interface to go fully idle
+  before retrying, since retrying too soon just cancels the previous attempt
+  instead of giving it a clean shot.
 - Prompts once for your KIIT username/password and caches them encrypted
   (via Windows DPAPI, through `Export-Clixml`) at
   `%LOCALAPPDATA%\KiitWifi\credential.xml` — never stored in the repo or in
